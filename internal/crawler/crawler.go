@@ -20,6 +20,8 @@ var ErrNotFound = errors.New("page not found")
 
 var alphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
+const DestinationDir = "storage"
+
 type Fetcher interface {
 	// Fetch returns the body of URL and a slice of URLs found on that page.
 	Fetch(url string) (body string, urls []string, err error)
@@ -205,7 +207,7 @@ func (c *Crawler) Crawl(rawURL string, depth int, fetcher Fetcher, wg *sync.Wait
 			return
 		}
 
-		fmt.Printf("-- %s, %d depth %d\n", rawURL, len(fetchedResult.urls), depth)
+		fmt.Printf("-- %s, links %d\n", rawURL, len(fetchedResult.urls))
 
 		for _, u := range fetchedResult.urls {
 			wg.Add(1)
@@ -217,7 +219,7 @@ func (c *Crawler) Crawl(rawURL string, depth int, fetcher Fetcher, wg *sync.Wait
 
 func NewCrawler(destinationDir string, httpClient HttpClient) (*Crawler, error) {
 	if destinationDir == "" {
-		destinationDir = "storage"
+		destinationDir = DestinationDir
 	}
 
 	if err := os.MkdirAll(destinationDir, os.ModePerm); err != nil {
