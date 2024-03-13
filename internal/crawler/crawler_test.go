@@ -5,17 +5,41 @@ import (
 	"github.com/stretchr/testify/require"
 	"go-labs/internal/crawler"
 	"go-labs/internal/testutils"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"testing"
 )
 
+const destinationDir = "test/storage"
+
+func cleanup() {
+	if err := os.RemoveAll(destinationDir); err != nil {
+		log.Fatalf("cleanup dirs: %v", err)
+	}
+}
+
+func testMain(m *testing.M) int {
+	defer func() {
+		cleanup()
+	}()
+
+	return m.Run()
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
+}
+
 func TestCrawler_Download(t *testing.T) {
-	var (
-		httpClient = testutils.NewTestHttpClient()
-		crw        = crawler.NewCrawler(httpClient)
-	)
+	t.Parallel()
+
+	httpClient := testutils.NewTestHttpClient()
+
+	crw, err := crawler.NewCrawler(destinationDir, httpClient)
+	require.NoError(t, err)
 
 	httpClient.Request("https://localhost.com", func() (code int, body string) {
 		return http.StatusOK, `
@@ -43,17 +67,21 @@ func TestCrawler_Download(t *testing.T) {
 }
 
 func TestCrawler_GetLinks(t *testing.T) {
+	t.Parallel()
+
 	var (
 		httpClient = testutils.NewTestHttpClient()
-		crw        = crawler.NewCrawler(httpClient)
 		rawURL     = "https://localhost.com"
 	)
+
+	crw, err := crawler.NewCrawler(destinationDir, httpClient)
+	require.NoError(t, err)
 
 	uri, err := url.Parse(rawURL)
 	require.NoError(t, err)
 
 	contents := bytes.NewBuffer([]byte(`
-			<ul>
+			<ul>p
 				<a href="/">Home</a>
 				<a href="/advanced-features">Advance features</a>
 				<a href="/pricing">Pricing</a>
@@ -67,11 +95,15 @@ func TestCrawler_GetLinks(t *testing.T) {
 }
 
 func TestCrawler_Fetch(t *testing.T) {
+	t.Parallel()
+
 	var (
 		httpClient = testutils.NewTestHttpClient()
-		crw        = crawler.NewCrawler(httpClient)
 		rawURL     = "https://localhost.com"
 	)
+
+	crw, err := crawler.NewCrawler(destinationDir, httpClient)
+	require.NoError(t, err)
 
 	httpClient.Request(rawURL, func() (code int, body string) {
 		return http.StatusOK, `
@@ -92,6 +124,12 @@ func TestCrawler_Fetch(t *testing.T) {
 }
 
 func TestCrawler_Crawl(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		cleanup()
+	}()
+
 	var (
 		httpClient = testutils.NewTestHttpClient()
 		rawURL     = "https://localhost.com"
@@ -125,7 +163,8 @@ func TestCrawler_Crawl(t *testing.T) {
 			</ul>`
 	})
 
-	crw := crawler.NewCrawler(httpClient)
+	crw, err := crawler.NewCrawler(destinationDir, httpClient)
+	require.NoError(t, err)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

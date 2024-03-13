@@ -9,11 +9,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
 
 var ErrNotFound = errors.New("page not found")
+
+var alphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 type Fetcher interface {
 	// Fetch returns the body of URL and a slice of URLs found on that page.
@@ -25,7 +30,8 @@ type HttpClient interface {
 }
 
 type Crawler struct {
-	httpClient HttpClient
+	destinationDir string
+	httpClient     HttpClient
 
 	mu           sync.Mutex
 	visitedPages map[string]struct{}
@@ -65,6 +71,19 @@ func (c *Crawler) Downloader(uri string) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("request failed with status: %d", res.StatusCode)
+}
+
+func (c *Crawler) Save(filename string, contents []byte) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("create file: %v", err)
+	}
+
+	if _, err = file.Write(contents); err != nil {
+		return fmt.Errorf("write: %v", err)
+	}
+
+	return nil
 }
 
 func (c *Crawler) GetLinks(uri *url.URL, r io.Reader) (links []string) {
@@ -125,19 +144,33 @@ func (c *Crawler) Fetch(rawURL string) (body string, urls []string, err error) {
 		return "", nil, fmt.Errorf("parse url: %v", err)
 	}
 
-	webpage, err := c.Downloader(uri.String())
-	if err != nil {
-		if !errors.Is(err, ErrNotFound) {
+	filename := rawURL
+	filename = alphanumericRegex.ReplaceAllString(filename, "-") + ".html"
+	filename = filepath.Join(c.destinationDir, filename)
+	buffer := new(bytes.Buffer)
+
+	contents, err := os.ReadFile(filename)
+	if err != nil && !errors.Is(err, io.EOF) {
+		if !os.IsNotExist(err) {
+			return "", nil, fmt.Errorf("exists: %v", err)
+		}
+
+		contents, err = c.Downloader(uri.String())
+		if err != nil {
+			if !errors.Is(err, ErrNotFound) {
+				return "", nil, err
+			}
+		}
+
+		if err = c.Save(filename, contents); err != nil {
 			return "", nil, err
 		}
 	}
 
-	var (
-		buffer = bytes.NewBuffer(webpage)
-		links  = c.GetLinks(uri, buffer)
-	)
+	buffer.Write(contents)
+	links := c.GetLinks(uri, buffer)
 
-	return string(webpage), links, nil
+	return string(contents), links, nil
 }
 
 func (c *Crawler) Crawl(rawURL string, depth int, fetcher Fetcher, wg *sync.WaitGroup) {
@@ -182,9 +215,18 @@ func (c *Crawler) Crawl(rawURL string, depth int, fetcher Fetcher, wg *sync.Wait
 	}
 }
 
-func NewCrawler(httpClient HttpClient) *Crawler {
-	return &Crawler{
-		httpClient:   httpClient,
-		visitedPages: make(map[string]struct{}),
+func NewCrawler(destinationDir string, httpClient HttpClient) (*Crawler, error) {
+	if destinationDir == "" {
+		destinationDir = "storage"
 	}
+
+	if err := os.MkdirAll(destinationDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("mkdir: %v", err)
+	}
+
+	return &Crawler{
+		destinationDir: destinationDir,
+		httpClient:     httpClient,
+		visitedPages:   make(map[string]struct{}),
+	}, nil
 }
