@@ -1,16 +1,67 @@
 package main
 
 import (
+	"context"
 	"github.com/hibiken/asynq"
 	"go-labs/cmd/queue/task"
+	"go-labs/internal/queue"
+	redis_queue "go-labs/internal/queue/redis-queue"
 	"log"
 	"time"
 )
 
 const redisAddr = "127.0.0.1:6379"
 
+type SendEmailTask struct {
+	queue.BasePayload
+
+	UserID string `json:"user_id,omitempty"`
+}
+
+type emailTask struct {
+}
+
+func (e emailTask) Key() queue.TaskIdentifier {
+	return "SendEmailTask"
+}
+
+func (e emailTask) Handler(ctx context.Context, task *asynq.Task) error {
+	log.Printf("payload: %s", task.Payload())
+	return nil
+}
+
+func NewSendEmailTaskPayload(userID string) *SendEmailTask {
+	return &SendEmailTask{
+		BasePayload: queue.BasePayload{
+			Identifier: "SendEmailTask",
+			RunAtTimes: []time.Time{
+				time.Now().Add(15 * time.Second),
+				time.Now().Add(30 * time.Second),
+				time.Now().Add(45 * time.Second),
+			},
+		},
+		UserID: userID,
+	}
+}
+
+func NewSendEmailTask() *emailTask {
+	return &emailTask{}
+}
+
 func main() {
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisAddr})
+	opts := asynq.RedisClientOpt{Addr: redisAddr}
+	queuer := redis_queue.NewQueue(opts)
+	dequeue := redis_queue.NewDequeue(opts)
+
+	ctx := context.Background()
+
+	if err := queuer.Enqueue(ctx, NewSendEmailTaskPayload("123")); err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Fatalln(dequeue.Run(NewSendEmailTask()))
+
+	client := asynq.NewClient(opts)
 	defer func(client *asynq.Client) {
 		_ = client.Close()
 	}(client)
