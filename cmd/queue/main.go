@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"github.com/hibiken/asynq"
-	"go-labs/cmd/queue/task"
 	"go-labs/internal/queue"
-	redis_queue "go-labs/internal/queue/redis-queue"
+	"go-labs/internal/queue/redisqueue"
 	"log"
 	"time"
 )
@@ -18,22 +17,22 @@ type SendEmailTask struct {
 	UserID string `json:"user_id,omitempty"`
 }
 
-type emailTask struct {
+type sendWelcomeEmailJob struct {
 }
 
-func (e emailTask) Key() queue.TaskIdentifier {
-	return "SendEmailTask"
+func (s *sendWelcomeEmailJob) Key() queue.Job {
+	return queue.JobSendWelcomeEmail
 }
 
-func (e emailTask) Handler(ctx context.Context, task *asynq.Task) error {
+func (s *sendWelcomeEmailJob) Handler(ctx context.Context, task *asynq.Task) error {
 	log.Printf("payload: %s", task.Payload())
 	return nil
 }
 
-func NewSendEmailTaskPayload(userID string) *SendEmailTask {
+func NewSendEmailJobPayload(userID string) *SendEmailTask {
 	return &SendEmailTask{
 		BasePayload: queue.BasePayload{
-			Identifier: "SendEmailTask",
+			JobName: queue.JobSendWelcomeEmail,
 			RunAtTimes: []time.Time{
 				time.Now().Add(15 * time.Second),
 				time.Now().Add(30 * time.Second),
@@ -44,59 +43,22 @@ func NewSendEmailTaskPayload(userID string) *SendEmailTask {
 	}
 }
 
-func NewSendEmailTask() *emailTask {
-	return &emailTask{}
+func NewSendEmailTask() queue.Worker {
+	return &sendWelcomeEmailJob{}
 }
 
 func main() {
-	opts := asynq.RedisClientOpt{Addr: redisAddr}
-	queuer := redis_queue.NewQueue(opts)
-	dequeue := redis_queue.NewDequeue(opts)
+	var (
+		opts      = asynq.RedisClientOpt{Addr: redisAddr}
+		publisher = redisqueue.NewPublisher(opts)
+		consumer  = redisqueue.NewConsumer(opts)
+	)
 
 	ctx := context.Background()
 
-	if err := queuer.Enqueue(ctx, NewSendEmailTaskPayload("123")); err != nil {
+	if err := publisher.Enqueue(ctx, NewSendEmailJobPayload("123")); err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Fatalln(dequeue.Run(NewSendEmailTask()))
-
-	client := asynq.NewClient(opts)
-	defer func(client *asynq.Client) {
-		_ = client.Close()
-	}(client)
-
-	//	Enqueue task to be processed immediately
-	emailDeliveryTask, err := task.NewEmailDeliveryTask(1, "template:id")
-	if err != nil {
-		log.Fatalf("failed to create email delivery task: %v", err)
-	}
-
-	emailDeliveryTaskInfo, err := client.Enqueue(emailDeliveryTask)
-	if err != nil {
-		log.Fatalf("failed to queue email delivery task: %v", err)
-	}
-
-	log.Printf("enqueued email delivery task: id=%s queue=%s\n", emailDeliveryTaskInfo.ID, emailDeliveryTaskInfo.Queue)
-
-	//	Schedule task to be processed in the future.
-	emailDeliveryTaskInfo, err = client.Enqueue(emailDeliveryTask, asynq.ProcessIn(30*time.Second))
-	if err != nil {
-		log.Fatalf("failed to queue email delivery task: %v", err)
-	}
-
-	log.Printf("enqueued email delivery task: id=%s queue=%s\n", emailDeliveryTaskInfo.ID, emailDeliveryTaskInfo.Queue)
-
-	//	Set other options to tune task processing behavior.
-	imageResizeTask, err := task.NewImageResizeTask("https://example.com/myassets/image.jpg")
-	if err != nil {
-		log.Fatalf("failed to create image resize task: %v", err)
-	}
-
-	imageResizeTaskInfo, err := client.Enqueue(imageResizeTask, asynq.MaxRetry(10), asynq.Timeout(3*time.Minute))
-	if err != nil {
-		log.Fatalf("failed to queue image resize task: %v", err)
-	}
-
-	log.Printf("enqueued image resize task: id=%s queue=%s\n", imageResizeTaskInfo.ID, imageResizeTaskInfo.Queue)
+	log.Fatalln(consumer.Register(NewSendEmailTask()))
 }
