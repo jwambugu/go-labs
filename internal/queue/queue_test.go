@@ -9,6 +9,12 @@ import (
 
 func TestNewTestQueue(t *testing.T) {
 	q := queue.NewTestQueue()
+
+	defer func() {
+		err := q.Close()
+		require.NoError(t, err)
+	}()
+
 	err := q.Enqueue(nil, queue.BasePayload{
 		JobName:    "NewTestQueue",
 		OnQueue:    queue.Low,

@@ -17,6 +17,14 @@ type consumer struct {
 	mux *asynq.ServeMux
 }
 
+func (c *consumer) Close() error {
+	defer func() {
+		//c.srv.Stop()
+		c.srv.Shutdown()
+	}()
+	return nil
+}
+
 func (p *publisher) Close() error {
 	return p.client.Close()
 }
@@ -34,14 +42,14 @@ func (p *publisher) Enqueue(ctx context.Context, payload queue.Payload) error {
 	job := payload.Job().String()
 	task := asynq.NewTask(job, b)
 
-	priority := payload.Queue().String()
+	priority := payload.Queue()
 	if priority == "" {
 		priority = queue.Default
 	}
 
 	for _, time := range payload.RunAt() {
 		_, err = p.client.EnqueueContext(ctx, task,
-			asynq.Queue(priority),
+			asynq.Queue(priority.String()),
 			asynq.MaxRetry(queue.MaxRetry),
 			asynq.ProcessAt(time),
 		)
@@ -65,7 +73,7 @@ func (c *consumer) Register(workers ...queue.Worker) error {
 		c.mux.HandleFunc(worker.Key().String(), worker.Handler)
 	}
 
-	return c.srv.Run(c.mux)
+	return c.srv.Start(c.mux)
 }
 
 func NewConsumer(opts asynq.RedisClientOpt) queue.Consumer {

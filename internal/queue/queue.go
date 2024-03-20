@@ -39,6 +39,7 @@ type Worker interface {
 
 // Consumer consumes the queued Job using the registered Worker
 type Consumer interface {
+	Close() error
 	Register(workers ...Worker) error
 }
 
