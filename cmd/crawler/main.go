@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"go-labs/internal/crawler"
+	"go-labs/svc/crawler"
 	"net/http"
 	"os"
 	"os/signal"

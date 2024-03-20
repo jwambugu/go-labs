@@ -3,8 +3,8 @@ package crawler_test
 import (
 	"bytes"
 	"github.com/stretchr/testify/require"
-	"go-labs/internal/crawler"
 	"go-labs/internal/testutils"
+	"go-labs/svc/crawler"
 	"log"
 	"net/http"
 	"net/url"
