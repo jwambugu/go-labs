@@ -38,11 +38,12 @@ type HttpClient interface {
 }
 
 type Crawler struct {
-	destinationDir string
-	httpClient     HttpClient
+	httpClient HttpClient
 
-	mu           sync.Mutex
-	visitedPages map[string]struct{}
+	visitedPages   map[string]struct{}
+	destinationDir string
+
+	mu sync.Mutex
 }
 
 type fetchResult struct {
