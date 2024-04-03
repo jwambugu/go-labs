@@ -2,13 +2,13 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users
 (
-    id UNSIGNED INTEGER PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    email VARCHAR NOT NULL UNIQUE,
-    password VARCHAR NOT NULL,
-    created_at VARCHAR NOT NULL,
-    updated_at VARCHAR NOT NULL,
-    deleted_at VARCHAR DEFAULT NULL
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       VARCHAR   NOT NULL,
+    email      VARCHAR   NOT NULL UNIQUE,
+    password   VARCHAR   NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    deleted_at TIMESTAMP DEFAULT NULL
 );
 -- +goose StatementEnd
 
