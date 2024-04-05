@@ -14,8 +14,8 @@ type Error struct {
 }
 
 type errorResponse struct {
-	Errors  []map[string]string `json:"errors,omitempty"`
 	Message string              `json:"message,omitempty"`
+	Errors  []map[string]string `json:"errors,omitempty"`
 }
 
 func (e *Error) code() int {
