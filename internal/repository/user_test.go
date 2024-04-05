@@ -3,9 +3,9 @@ package repository_test
 import (
 	"context"
 	"github.com/stretchr/testify/require"
-	"go-labs/internal/model"
 	"go-labs/internal/repository"
 	"go-labs/internal/testutils"
+	"go-labs/internal/testutils/factory"
 	"go-labs/internal/util"
 	"testing"
 	"time"
@@ -22,11 +22,7 @@ func TestNewUserRepo(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	testUser := &model.User{
-		Name:     "Joram",
-		Email:    "jwambugu@test.com",
-		Password: []byte("$2a$12$49g9iuZpDn0bRDuX50Fnh.eCvbJn2EIo5fVBEfCr/kLGngHHmdGc2"),
-	}
+	testUser := factory.NewUser()
 
 	userRepo, err := repository.NewUserTestRepo(ctx, dbConn, testUser)
 	require.NoError(t, err)
@@ -41,7 +37,7 @@ func TestNewUserRepo(t *testing.T) {
 	require.NotNil(t, user)
 	require.Equal(t, testUser.Email, user.Email)
 
-	testUser.Name = "Wambugu"
+	testUser.Name = "Morty"
 	err = userRepo.Update(ctx, testUser)
 	require.NoError(t, err)
 

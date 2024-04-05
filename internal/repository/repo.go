@@ -1,5 +1,5 @@
 package repository
 
-type Repo struct {
+type Store struct {
 	User User
 }
