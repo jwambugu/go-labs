@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"go-labs/internal/model"
@@ -12,6 +14,7 @@ import (
 type User interface {
 	Create(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint64) error
+	EmailExists(ctx context.Context, email string) error
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
 	FindByID(ctx context.Context, id uint64) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
@@ -34,9 +37,16 @@ const (
 			updated_at = ?,
 			deleted_at = ?
 		WHERE id = ?;`
+	_userEmailExists = `SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND deleted_at IS NULL)`
 )
 
 func (u *userRepo) Create(ctx context.Context, user *model.User) error {
+	defer func() {
+		if user != nil {
+			user.Password = nil
+		}
+	}()
+
 	user.CreatedAt = util.TimePtr(time.Now())
 	user.UpdatedAt = util.TimePtr(time.Now())
 
@@ -74,10 +84,27 @@ func (u *userRepo) Delete(ctx context.Context, id uint64) error {
 	return u.Update(ctx, user)
 }
 
+func (u *userRepo) EmailExists(ctx context.Context, email string) error {
+	var exists bool
+
+	if err := u.db.GetContext(ctx, &exists, _userEmailExists, email); err != nil {
+		return err
+	}
+
+	if exists {
+		return ErrRecordExists
+	}
+
+	return nil
+}
+
 func (u *userRepo) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
 
 	if err := u.db.GetContext(ctx, &user, _userFindByEmailQuery, email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrRecordNotFound
+		}
 		return nil, fmt.Errorf("get: %v", err)
 	}
 

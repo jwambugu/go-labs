@@ -37,6 +37,10 @@ func TestNewUserRepo(t *testing.T) {
 	require.NotNil(t, user)
 	require.Equal(t, testUser.Email, user.Email)
 
+	user, err = userRepo.FindByEmail(ctx, "test@noemail.com")
+	require.EqualError(t, err, repository.ErrRecordNotFound.Error())
+	require.Nil(t, user)
+
 	testUser.Name = "Morty"
 	err = userRepo.Update(ctx, testUser)
 	require.NoError(t, err)

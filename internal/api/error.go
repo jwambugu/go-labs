@@ -50,7 +50,7 @@ func (h *httpError) toJson() *errorResponse {
 	return resp
 }
 
-func (a *Api) errorResponse(w http.ResponseWriter, status int, err error) {
+func (a *Api) JSONError(w http.ResponseWriter, status int, err error) {
 	var (
 		httpErr = httpError{
 			err:    err,

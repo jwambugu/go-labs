@@ -14,14 +14,6 @@ type LoginRequest struct {
 	Password string `json:"password,omitempty" validate:"required"`
 }
 
-type validationError struct {
-	err any
-}
-
-func (e validationError) Error() string {
-	return ""
-}
-
 func (r *LoginRequest) Validate() error {
 	return validate.Struct(r)
 }
@@ -32,9 +24,9 @@ type LoginResponse struct {
 }
 
 type RegisterRequest struct {
-	Name     string `json:"name,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password,omitempty"`
+	Name     string `json:"name,omitempty" validate:"required"`
+	Email    string `json:"email,omitempty" validate:"required,email"`
+	Password string `json:"password,omitempty" validate:"required,gte=8"`
 }
 
 func (r *RegisterRequest) Validate() error {

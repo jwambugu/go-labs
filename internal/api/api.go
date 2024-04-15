@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"go-labs/internal/repository"
+	"go-labs/svc/auth"
 	"net/http"
 )
 
@@ -11,7 +12,8 @@ import (
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 type Api struct {
-	rs *repository.Store
+	rs      *repository.Store
+	authSVC auth.Authenticator
 }
 
 func (a *Api) Serve(port int) *http.Server {
@@ -21,6 +23,9 @@ func (a *Api) Serve(port int) *http.Server {
 	}
 }
 
-func NewApi(rs *repository.Store) *Api {
-	return &Api{rs: rs}
+func NewApi(rs *repository.Store, authSVC auth.Authenticator) *Api {
+	return &Api{
+		rs:      rs,
+		authSVC: authSVC,
+	}
 }

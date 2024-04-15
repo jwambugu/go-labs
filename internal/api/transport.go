@@ -19,7 +19,7 @@ func encode(w http.ResponseWriter, statusCode int, payload any) {
 	}
 }
 
-func (a *Api) successResponse(w http.ResponseWriter, status int, data any) {
+func (a *Api) JSON(w http.ResponseWriter, status int, data any) {
 	resp := &successResponse{
 		Data: data,
 	}
