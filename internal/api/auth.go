@@ -25,7 +25,12 @@ func (a *Api) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.JSON(w, http.StatusOK, loginResp)
+	resp := &successResponse{
+		User:        loginResp.User,
+		AccessToken: loginResp.AccessToken,
+	}
+
+	a.JSON(w, http.StatusOK, resp)
 }
 
 func (a *Api) registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +42,7 @@ func (a *Api) registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := registerReq.Validate(); err != nil {
-		a.JSONError(w, http.StatusInternalServerError, err)
+		a.JSONError(w, http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -47,5 +52,9 @@ func (a *Api) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.JSON(w, http.StatusOK, registerResp)
+	resp := &successResponse{
+		User:        registerResp.User,
+		AccessToken: registerResp.AccessToken,
+	}
+	a.JSON(w, http.StatusCreated, resp)
 }

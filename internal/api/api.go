@@ -19,7 +19,7 @@ type Api struct {
 func (a *Api) Serve(port int) *http.Server {
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: a.Routes(),
+		Handler: a.Router(),
 	}
 }
 

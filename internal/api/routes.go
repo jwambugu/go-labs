@@ -2,7 +2,7 @@ package api
 
 import "net/http"
 
-func (a *Api) Routes() *http.ServeMux {
+func (a *Api) Router() *http.ServeMux {
 	router := http.NewServeMux()
 	globalMiddlewares := a.chainMiddleware(a.loggingMiddleware, a.requestIDMiddleware)
 

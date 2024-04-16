@@ -6,7 +6,6 @@ import (
 )
 
 // use a single instance of Validate, it caches struct info
-
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 type LoginRequest struct {

@@ -2,12 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"go-labs/internal/model"
 	"log"
 	"net/http"
 )
 
 type successResponse struct {
-	Data any `json:"data,omitempty"`
+	User        *model.User `json:"user,omitempty"`
+	AccessToken string      `json:"access_token,omitempty"`
 }
 
 func encode(w http.ResponseWriter, statusCode int, payload any) {
@@ -19,10 +21,6 @@ func encode(w http.ResponseWriter, statusCode int, payload any) {
 	}
 }
 
-func (a *Api) JSON(w http.ResponseWriter, status int, data any) {
-	resp := &successResponse{
-		Data: data,
-	}
-
-	encode(w, status, resp)
+func (a *Api) JSON(w http.ResponseWriter, status int, payload any) {
+	encode(w, status, payload)
 }
