@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const UserPassword = "password"
+
 func Seed() int64 {
 	var b [8]byte
 	_, err := cryptorand.Read(b[:])
@@ -27,6 +29,6 @@ func NewUser() *model.User {
 		UpdatedAt: util.TimePtr(time.Now()),
 		Name:      util.StrTitle(f.Person().Name()),
 		Email:     f.Numerify("########") + "." + f.Internet().Email(),
-		Password:  []byte("password"),
+		Password:  []byte("$2a$10$rsO27uABCBzkMlv5UasLvux80qeuUbl/0QQxPvGnVMJqCFkoiK5eG"),
 	}
 }

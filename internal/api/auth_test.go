@@ -55,7 +55,7 @@ func TestApi_Register_Registers(t *testing.T) {
 		registerReq = &auth.RegisterRequest{
 			Name:     user.Name,
 			Email:    user.Email,
-			Password: string(user.Password),
+			Password: factory.UserPassword,
 		}
 	)
 
@@ -82,6 +82,7 @@ func TestApi_Register_Registers(t *testing.T) {
 	require.Equal(t, user.Name, resp.User.Name)
 	require.Equal(t, user.Email, resp.User.Email)
 	require.Nil(t, resp.User.Password)
+	require.NotEmpty(t, resp.AccessToken)
 }
 
 func TestApi_Register_FlagsDuplicateEmails(t *testing.T) {
@@ -99,7 +100,7 @@ func TestApi_Register_FlagsDuplicateEmails(t *testing.T) {
 	registerReq := &auth.RegisterRequest{
 		Name:     user.Name,
 		Email:    user.Email,
-		Password: "password",
+		Password: factory.UserPassword,
 	}
 
 	b, err := json.Marshal(registerReq)
@@ -167,6 +168,112 @@ func TestApi_Register_Validates(t *testing.T) {
 			err = json.NewDecoder(rr.Body).Decode(&resp)
 			require.NoError(t, err)
 			require.Len(t, resp.Errors, tt.errorsCount)
+		})
+	}
+}
+
+func TestApi_Login_Authenticates(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx  = context.Background()
+		srv  = testServer(t)
+		user = factory.NewUser()
+	)
+
+	err := srv.repoStore.User.Create(ctx, user)
+	require.NoError(t, err)
+
+	loginRequest := &auth.LoginRequest{
+		Email:    user.Email,
+		Password: factory.UserPassword,
+	}
+
+	b, err := json.Marshal(loginRequest)
+	require.NoError(t, err)
+	require.NotNil(t, b)
+
+	var (
+		req = httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewBuffer(b))
+		rr  = httptest.NewRecorder()
+	)
+
+	srv.mux.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var resp *successResponse
+
+	err = json.NewDecoder(rr.Body).Decode(&resp)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	require.Equal(t, user.Name, resp.User.Name)
+	require.Equal(t, user.Email, resp.User.Email)
+	require.Nil(t, resp.User.Password)
+	require.NotEmpty(t, resp.AccessToken)
+}
+
+func TestApi_Login_InvalidCredentials(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx = context.Background()
+		srv = testServer(t)
+	)
+
+	tests := []struct {
+		name string
+		req  func(t *testing.T) *auth.LoginRequest
+	}{
+		{
+			name: "incorrect email",
+			req: func(_ *testing.T) *auth.LoginRequest {
+				user := factory.NewUser()
+				return &auth.LoginRequest{
+					Email:    user.Email,
+					Password: factory.UserPassword,
+				}
+			},
+		},
+		{
+			name: "incorrect password",
+			req: func(_ *testing.T) *auth.LoginRequest {
+				user := factory.NewUser()
+
+				err := srv.repoStore.User.Create(ctx, user)
+				require.NoError(t, err)
+
+				return &auth.LoginRequest{
+					Email:    user.Email,
+					Password: "not-password",
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			loginRequest := tt.req(t)
+
+			b, err := json.Marshal(loginRequest)
+			require.NoError(t, err)
+			require.NotNil(t, b)
+
+			var (
+				req = httptest.NewRequest(http.MethodPost, "/v1/login", bytes.NewBuffer(b))
+				rr  = httptest.NewRecorder()
+			)
+
+			srv.mux.ServeHTTP(rr, req)
+
+			require.Equal(t, http.StatusInternalServerError, rr.Code)
+
+			var resp *errorResponse
+
+			err = json.NewDecoder(rr.Body).Decode(&resp)
+			require.NoError(t, err)
+			require.NotEmpty(t, resp.Message)
 		})
 	}
 }
