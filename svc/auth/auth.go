@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"go-labs/internal/httperr"
 	"go-labs/internal/model"
 	"go-labs/internal/repository"
 	"go-labs/internal/util"
@@ -15,8 +16,6 @@ type Authenticator interface {
 	Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error)
 	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
 }
-
-var ErrInvalidHash = errors.New("auth: invalid hash")
 
 type authSvc struct {
 	logger     *zap.Logger
@@ -31,14 +30,14 @@ func (a *authSvc) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 	if err != nil {
 		logger.Error("find by email", zap.Error(err))
 		if errors.Is(err, repository.ErrRecordNotFound) {
-			return nil, repository.ErrRecordNotFound
+			return nil, httperr.ErrInvalidCredentials
 		}
 
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	if err = util.CompareHash(string(user.Password), req.Password); err != nil {
-		return nil, ErrInvalidHash
+		return nil, httperr.ErrInvalidCredentials
 	}
 
 	user.Password = nil
@@ -46,7 +45,7 @@ func (a *authSvc) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 	accessToken, err := a.jwtManager.Generate(user, JWTTokenExpiresAt)
 	if err != nil {
 		logger.Error("failed to generate access token", zap.Error(err), zap.Uint64("user", user.ID))
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	resp := &LoginResponse{
@@ -68,15 +67,15 @@ func (a *authSvc) Register(ctx context.Context, req *RegisterRequest) (*Register
 		logger.Error("failed to check id email exists", zap.Error(err))
 
 		if errors.Is(err, repository.ErrRecordExists) {
-			return nil, err
+			return nil, httperr.ErrDuplicateEmail
 		}
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	password, err := util.HashString(req.Password)
 	if err != nil {
 		logger.Error("failed to hash password", zap.Error(err))
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	var (
@@ -92,13 +91,13 @@ func (a *authSvc) Register(ctx context.Context, req *RegisterRequest) (*Register
 
 	if err = a.rs.User.Create(ctx, user); err != nil {
 		logger.Error("failed create new user", zap.Error(err))
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	accessToken, err := a.jwtManager.Generate(user, JWTTokenExpiresAt)
 	if err != nil {
 		logger.Error("failed to generate access token", zap.Error(err), zap.Uint64("user", user.ID))
-		return nil, err
+		return nil, httperr.ErrServerError
 	}
 
 	resp := &RegisterResponse{

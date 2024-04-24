@@ -2,9 +2,8 @@ package api
 
 import (
 	"errors"
-	"github.com/go-playground/validator/v10"
+	"go-labs/internal/httperr"
 	"net/http"
-	"strings"
 )
 
 type errorResponse struct {
@@ -12,53 +11,18 @@ type errorResponse struct {
 	Errors  []map[string]string `json:"errors,omitempty"`
 }
 
-type httpError struct {
-	err    error
-	status int
-}
-
-func (h *httpError) statusCode() int {
-	return h.status
-}
-
-func (h *httpError) toJson() *errorResponse {
-	if h.err == nil {
-		return nil
+func (a *Api) JSONError(w http.ResponseWriter, err error) {
+	var httpErr httperr.Error
+	if !errors.As(err, &httpErr) {
+		httpErr = httperr.ErrServerError
 	}
 
-	resp := &errorResponse{
-		Message: h.err.Error(),
+	var payload any
+
+	payload = httpErr.Message
+	if httpErr.StatusCode == http.StatusUnprocessableEntity {
+		payload = httpErr.Errors
 	}
 
-	var validationErrors validator.ValidationErrors
-	if errors.As(h.err, &validationErrors) {
-		errs := make([]map[string]string, len(validationErrors))
-
-		for i, err := range validationErrors {
-			field := strings.ToLower(err.Field())
-
-			errs[i] = map[string]string{
-				field: err.Error(),
-			}
-		}
-
-		h.status = http.StatusUnprocessableEntity
-		resp.Errors = errs
-		resp.Message = "The given data was invalid"
-	}
-
-	return resp
-}
-
-func (a *Api) JSONError(w http.ResponseWriter, status int, err error) {
-	var (
-		httpErr = httpError{
-			err:    err,
-			status: status,
-		}
-
-		payload = httpErr.toJson()
-	)
-
-	encode(w, httpErr.statusCode(), payload)
+	encode(w, httpErr.StatusCode, payload)
 }
