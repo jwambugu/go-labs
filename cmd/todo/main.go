@@ -1,73 +1,425 @@
+//package main
+//
+//import (
+//	"fmt"
+//)
+//
+////func GroupOpenHours(openHours []map[string]string) []map[string]string {
+////	if len(openHours) == 0 {
+////		return []map[string]string{{"days": "Monday-Sunday", "open": "", "close": ""}}
+////	}
+////
+////	groupedOpenHours := make([]map[string]string, 0)
+////
+////	var currentStart, currentEnd string
+////	var currentOpen, currentClose string
+////	var isOpen bool
+////	for i, oh := range openHours {
+////		if i == 0 {
+////			currentStart = oh["day"]
+////			currentEnd = oh["day"]
+////			currentOpen = oh["open"]
+////			currentClose = oh["close"]
+////			isOpen = currentOpen != "" && currentClose != ""
+////			continue
+////		}
+////
+////		prev := openHours[i-1]
+////		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+////		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+////
+////		if isOpen == isPrevOpen && isOpen == isCurrOpen &&
+////			(currentOpen == oh["open"] && currentClose == oh["close"]) {
+////			currentEnd = oh["day"]
+////		} else {
+////			groupedOpenHours = append(groupedOpenHours, map[string]string{
+////				"days":  formatDays(currentStart, currentEnd),
+////				"open":  currentOpen,
+////				"close": currentClose,
+////			})
+////			currentStart = oh["day"]
+////			currentEnd = oh["day"]
+////			currentOpen = oh["open"]
+////			currentClose = oh["close"]
+////			isOpen = currentOpen != "" && currentClose != ""
+////		}
+////	}
+////
+////	// Append the last entry
+////	groupedOpenHours = append(groupedOpenHours, map[string]string{
+////		"days":  formatDays(currentStart, currentEnd),
+////		"open":  currentOpen,
+////		"close": currentClose,
+////	})
+////
+////	// Add missing days
+////	for _, day := range []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"} {
+////		if !containsDay(openHours, day) {
+////			groupedOpenHours = append(groupedOpenHours, map[string]string{"days": day, "open": "", "close": ""})
+////		}
+////	}
+////
+////	// Merge consecutive closed days into a single entry
+////	groupedOpenHours = mergeClosedDays(groupedOpenHours)
+////
+////	return groupedOpenHours
+////}
+////
+////func containsDay(openHours []map[string]string, day string) bool {
+////	for _, oh := range openHours {
+////		if oh["day"] == day {
+////			return true
+////		}
+////	}
+////	return false
+////}
+////
+////func formatDays(start, end string) string {
+////	if start == end {
+////		return start
+////	}
+////	return fmt.Sprintf("%s-%s", start, end)
+////}
+////
+////func mergeClosedDays(openHours []map[string]string) []map[string]string {
+////	merged := make([]map[string]string, 0)
+////
+////	var currentStart, currentEnd string
+////	var isOpen bool
+////	for i, oh := range openHours {
+////		if i == 0 {
+////			currentStart = oh["days"]
+////			currentEnd = oh["days"]
+////			isOpen = oh["open"] != "" && oh["close"] != ""
+////			continue
+////		}
+////
+////		prev := openHours[i-1]
+////		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+////		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+////
+////		if isOpen == isPrevOpen && isOpen == isCurrOpen && oh["open"] == "" && oh["close"] == "" {
+////			currentEnd = oh["days"]
+////		} else {
+////			merged = append(merged, map[string]string{
+////				"days":  formatDays(currentStart, currentEnd),
+////				"open":  "",
+////				"close": "",
+////			})
+////			currentStart = oh["days"]
+////			currentEnd = oh["days"]
+////			isOpen = oh["open"] != "" && oh["close"] != ""
+////		}
+////	}
+////
+////	// Append the last entry
+////	merged = append(merged, map[string]string{
+////		"days":  formatDays(currentStart, currentEnd),
+////		"open":  "",
+////		"close": "",
+////	})
+////
+////	return merged
+////}
+//
+//func main() {
+//	openHours := []map[string]string{
+//		{"day": "Monday", "open": "9:00 AM", "close": "4:00 PM"},
+//		{"day": "Tuesday", "open": "9:00 AM", "close": "4:00 PM"},
+//		{"day": "Wednesday", "open": "9:00 AM", "close": "4:00 PM"},
+//		{"day": "Thursday", "open": "9:00 AM", "close": "4:00 PM"},
+//	}
+//	groupedOpenHours := GroupOpenHours(openHours)
+//	for _, oh := range groupedOpenHours {
+//		fmt.Println(oh)
+//	}
+//
+//	fmt.Println("==============")
+//
+//	openHours = []map[string]string{
+//		{
+//			"day":   "Monday",
+//			"open":  "8:00 AM",
+//			"close": "5:00 PM",
+//		},
+//		{
+//			"day":   "Tuesday",
+//			"open":  "8:00 AM",
+//			"close": "5:00 PM",
+//		},
+//		{
+//			"day":   "Wednesday",
+//			"open":  "8:00 AM",
+//			"close": "6:00 PM",
+//		},
+//		{
+//			"day":   "Thursday",
+//			"open":  "8:00 AM",
+//			"close": "5:00 PM",
+//		},
+//		{
+//			"day":   "Friday",
+//			"open":  "8:00 AM",
+//			"close": "5:00 PM",
+//		},
+//		{
+//			"day":   "Saturday",
+//			"open":  "8:00 AM",
+//			"close": "4:00 PM",
+//		},
+//	}
+//	groupedOpenHours = GroupOpenHours(openHours)
+//	for _, oh := range groupedOpenHours {
+//		fmt.Println(oh)
+//	}
+//}
+//func GroupOpenHours(openHours []map[string]string) []map[string]string {
+//	if len(openHours) == 0 {
+//		return []map[string]string{{"days": "Monday-Sunday", "open": "", "close": ""}}
+//	}
+//
+//	groupedOpenHours := make([]map[string]string, 0)
+//
+//	var currentStart, currentEnd string
+//	var currentOpen, currentClose string
+//	var isOpen bool
+//	for i, oh := range openHours {
+//		if i == 0 {
+//			currentStart = oh["day"]
+//			currentEnd = oh["day"]
+//			currentOpen = oh["open"]
+//			currentClose = oh["close"]
+//			isOpen = currentOpen != "" && currentClose != ""
+//			continue
+//		}
+//
+//		prev := openHours[i-1]
+//		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+//		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+//
+//		if isOpen == isPrevOpen && isOpen == isCurrOpen &&
+//			(currentOpen == oh["open"] && currentClose == oh["close"]) {
+//			currentEnd = oh["day"]
+//		} else {
+//			groupedOpenHours = append(groupedOpenHours, map[string]string{
+//				"days":  formatDays(currentStart, currentEnd),
+//				"open":  currentOpen,
+//				"close": currentClose,
+//			})
+//			currentStart = oh["day"]
+//			currentEnd = oh["day"]
+//			currentOpen = oh["open"]
+//			currentClose = oh["close"]
+//			isOpen = currentOpen != "" && currentClose != ""
+//		}
+//	}
+//
+//	groupedOpenHours = append(groupedOpenHours, map[string]string{
+//		"days":  formatDays(currentStart, currentEnd),
+//		"open":  currentOpen,
+//		"close": currentClose,
+//	})
+//
+//	for _, day := range []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"} {
+//		if !containsDay(openHours, day) {
+//			groupedOpenHours = append(groupedOpenHours, map[string]string{"days": day, "open": "", "close": ""})
+//		}
+//	}
+//
+//	groupedOpenHours = mergeClosedDays(groupedOpenHours)
+//
+//	return groupedOpenHours
+//}
+//
+//func containsDay(openHours []map[string]string, day string) bool {
+//	for _, oh := range openHours {
+//		if oh["day"] == day {
+//			return true
+//		}
+//	}
+//	return false
+//}
+//
+//func formatDays(start, end string) string {
+//	if start == end {
+//		return start
+//	}
+//	return fmt.Sprintf("%s-%s", start, end)
+//}
+//
+//func mergeClosedDays(openHours []map[string]string) []map[string]string {
+//	merged := make([]map[string]string, 0)
+//
+//	var currentStart, currentEnd string
+//	var isOpen bool
+//	for i, oh := range openHours {
+//		if i == 0 {
+//			currentStart = oh["days"]
+//			currentEnd = oh["days"]
+//			isOpen = oh["open"] != "" && oh["close"] != ""
+//			continue
+//		}
+//
+//		prev := openHours[i-1]
+//		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+//		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+//
+//		if isOpen == isPrevOpen && isOpen == isCurrOpen && oh["open"] == "" && oh["close"] == "" {
+//			currentEnd = oh["days"]
+//		} else {
+//			merged = append(merged, map[string]string{
+//				"days":  formatDays(currentStart, currentEnd),
+//				"open":  prev["open"],
+//				"close": prev["close"],
+//			})
+//			currentStart = oh["days"]
+//			currentEnd = oh["days"]
+//			isOpen = oh["open"] != "" && oh["close"] != ""
+//		}
+//	}
+//
+//	merged = append(merged, map[string]string{
+//		"days":  formatDays(currentStart, currentEnd),
+//		"open":  openHours[len(openHours)-1]["open"],
+//		"close": openHours[len(openHours)-1]["close"],
+//	})
+//
+//	return merged
+//}
+
 package main
 
 import (
-	"context"
-	"github.com/jmoiron/sqlx"
-	"go-labs/internal/api"
-	"go-labs/internal/repository"
-	"go-labs/internal/repository/db"
-	"go-labs/svc/auth"
-	"go.uber.org/zap"
-	"log"
-	"os"
-	"os/signal"
+	"fmt"
 )
 
-type app struct {
-	db *sqlx.DB
+func GroupOpenHours(openHours []map[string]string) []map[string]string {
+	if len(openHours) == 0 {
+		return []map[string]string{{"days": "Monday-Sunday", "open": "", "close": ""}}
+	}
+
+	groupedOpenHours := make([]map[string]string, 0)
+
+	var currentStart, currentEnd string
+	var currentOpen, currentClose string
+	var isOpen bool
+	for i, oh := range openHours {
+		if i == 0 {
+			currentStart = oh["day"]
+			currentEnd = oh["day"]
+			currentOpen = oh["open"]
+			currentClose = oh["close"]
+			isOpen = currentOpen != "" && currentClose != ""
+			continue
+		}
+
+		prev := openHours[i-1]
+		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+
+		if isOpen == isPrevOpen && isOpen == isCurrOpen &&
+			(currentOpen == oh["open"] && currentClose == oh["close"]) {
+			currentEnd = oh["day"]
+		} else {
+			groupedOpenHours = append(groupedOpenHours, map[string]string{
+				"days":  formatDays(currentStart, currentEnd),
+				"open":  currentOpen,
+				"close": currentClose,
+			})
+			currentStart = oh["day"]
+			currentEnd = oh["day"]
+			currentOpen = oh["open"]
+			currentClose = oh["close"]
+			isOpen = currentOpen != "" && currentClose != ""
+		}
+	}
+
+	// Append the last entry
+	groupedOpenHours = append(groupedOpenHours, map[string]string{
+		"days":  formatDays(currentStart, currentEnd),
+		"open":  currentOpen,
+		"close": currentClose,
+	})
+
+	// Add missing days
+	for _, day := range []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"} {
+		if !containsDay(openHours, day) {
+			groupedOpenHours = append(groupedOpenHours, map[string]string{"days": day, "open": "", "close": ""})
+		}
+	}
+
+	// Merge consecutive closed days into a single entry
+	groupedOpenHours = mergeClosedDays(groupedOpenHours)
+
+	return groupedOpenHours
 }
 
-func run(ctx context.Context) (*app, error) {
-	dbConn, err := db.New(ctx, "sqlite3", "todo.db")
-	if err != nil {
-		return nil, err
+func containsDay(openHours []map[string]string, day string) bool {
+	for _, oh := range openHours {
+		if oh["day"] == day {
+			return true
+		}
+	}
+	return false
+}
+
+func formatDays(start, end string) string {
+	if start == end {
+		return start
+	}
+	return fmt.Sprintf("%s-%s", start, end)
+}
+
+func mergeClosedDays(openHours []map[string]string) []map[string]string {
+	merged := make([]map[string]string, 0)
+
+	var currentStart, currentEnd string
+	var isOpen bool
+	for i, oh := range openHours {
+		if i == 0 {
+			currentStart = oh["days"]
+			currentEnd = oh["days"]
+			isOpen = oh["open"] != "" && oh["close"] != ""
+			continue
+		}
+
+		prev := openHours[i-1]
+		isPrevOpen := prev["open"] != "" && prev["close"] != ""
+		isCurrOpen := oh["open"] != "" && oh["close"] != ""
+
+		if isOpen == isPrevOpen && isOpen == isCurrOpen && oh["open"] == "" && oh["close"] == "" {
+			currentEnd = oh["days"]
+		} else {
+			merged = append(merged, map[string]string{
+				"days":  formatDays(currentStart, currentEnd),
+				"open":  prev["open"],
+				"close": prev["close"],
+			})
+			currentStart = oh["days"]
+			currentEnd = oh["days"]
+			isOpen = oh["open"] != "" && oh["close"] != ""
+		}
 	}
 
-	if err = db.Migrate(dbConn, "sqlite3"); err != nil {
-		return nil, err
-	}
+	// Append the last entry
+	merged = append(merged, map[string]string{
+		"days":  formatDays(currentStart, currentEnd),
+		"open":  openHours[len(openHours)-1]["open"],
+		"close": openHours[len(openHours)-1]["close"],
+	})
 
-	newApp := &app{
-		db: dbConn,
-	}
-
-	return newApp, nil
+	return merged
 }
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
-	defer cancel()
-	app, err := run(ctx)
-	if err != nil {
-		log.Fatalf("run: %v", err)
+	openHours := []map[string]string{
+		{"day": "Monday", "open": "9:00 AM", "close": "4:00 PM"},
+		{"day": "Tuesday", "open": "9:00 AM", "close": "4:00 PM"},
+		{"day": "Wednesday", "open": "9:00 AM", "close": "4:00 PM"},
+		{"day": "Thursday", "open": "9:00 AM", "close": "4:00 PM"},
 	}
-
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-
-	// TODO: read from the env
-	pasetoKey := "86f5778df1b11e35caf8bc793391bfd1"
-
-	jwtManager, err := auth.NewPasetoToken(pasetoKey)
-	if err != nil {
-		logger.Error("failed to create jwt manager", zap.Error(err))
-		log.Panicln(err)
+	groupedOpenHours := GroupOpenHours(openHours)
+	for _, oh := range groupedOpenHours {
+		fmt.Println(oh)
 	}
-
-	repoStore := repository.NewStore()
-	repoStore.User = repository.NewUserRepo(app.db)
-
-	authSVC := auth.NewAuthSvc(logger, repoStore, jwtManager)
-
-	httpApi := api.NewApi(repoStore, authSVC)
-	srv := httpApi.Serve(8080)
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Fatalf("start server: %v", err)
-		}
-	}()
-
-	<-ctx.Done()
-	_ = srv.Shutdown(ctx)
 }
