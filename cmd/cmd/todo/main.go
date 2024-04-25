@@ -9,6 +9,46 @@ import (
 	"time"
 )
 
+func waitGroupImpl(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
+	var wg sync.WaitGroup
+
+	for _, todo := range todos {
+		wg.Add(1)
+
+		go func(id int) {
+			defer wg.Done()
+
+			resp, err := api.Get(ctx, id)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			log.Printf("todo: %#+v \n", resp)
+		}(todo.ID)
+	}
+
+	wg.Wait()
+}
+
+func channelImpl(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
+	resultChan := make(chan *dummyjson.Todo)
+	for _, todo := range todos {
+		go func(id int) {
+			resp, err := api.Get(ctx, id)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			resultChan <- resp
+		}(todo.ID)
+	}
+
+	for i := 0; i < len(todos); i++ {
+		todo := <-resultChan
+		log.Printf("todo: %#+v \n", todo)
+	}
+}
+
 func main() {
 	var (
 		httpClient = &http.Client{
@@ -26,21 +66,6 @@ func main() {
 
 	log.Printf("todos: %#+v \n", todos)
 
-	var wg sync.WaitGroup
-
-	for _, t := range todos.Todos {
-		wg.Add(1)
-
-		go func(id int) {
-			defer wg.Done()
-			todo, err := todoApi.Get(ctx, id)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			log.Printf("todo: %#+v \n", todo)
-		}(t.ID)
-	}
-
-	wg.Wait()
+	//waitGroupImpl(ctx, todoApi, todos.Todos)
+	channelImpl(ctx, todoApi, todos.Todos)
 }
