@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"go-labs/internal/dummyjson"
 	"log"
 	"net/http"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -49,6 +51,34 @@ func channelImpl(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.T
 	}
 }
 
+func limitGoroutines(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
+	var (
+		maxGoroutines = runtime.GOMAXPROCS(runtime.NumCPU())
+		limiter       = make(chan struct{}, maxGoroutines)
+	)
+
+	for _, todo := range todos {
+		limiter <- struct{}{}
+
+		go func(id int) {
+			defer func() {
+				<-limiter
+			}()
+
+			resp, err := api.Get(ctx, id)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fmt.Printf("%+#v\n", resp)
+		}(todo.ID)
+	}
+
+	for i := 0; i < cap(limiter); i++ {
+		limiter <- struct{}{}
+	}
+}
+
 func main() {
 	var (
 		httpClient = &http.Client{
@@ -59,7 +89,7 @@ func main() {
 		ctx     = context.Background()
 	)
 
-	todos, err := todoApi.GetAll(ctx, 5, 2)
+	todos, err := todoApi.GetAll(ctx, 10, 2)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -67,5 +97,6 @@ func main() {
 	log.Printf("todos: %#+v \n", todos)
 
 	//waitGroupImpl(ctx, todoApi, todos.Todos)
-	channelImpl(ctx, todoApi, todos.Todos)
+	//channelImpl(ctx, todoApi, todos.Todos)
+	limitGoroutines(ctx, todoApi, todos.Todos)
 }
