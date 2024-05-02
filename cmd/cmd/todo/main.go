@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"go-labs/internal/dummyjson"
+	"golang.org/x/sync/errgroup"
 	"log"
-	"net/http"
 	"runtime"
 	"sync"
-	"time"
 )
 
 func waitGroupImpl(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
@@ -79,24 +78,104 @@ func limitGoroutines(ctx context.Context, api dummyjson.Todoer, todos []*dummyjs
 	}
 }
 
-func main() {
-	var (
-		httpClient = &http.Client{
-			Timeout: 10 * time.Second,
-		}
+func errGroup(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
+	errGrp := errgroup.Group{}
 
-		todoApi = dummyjson.NewTodoApi(httpClient)
-		ctx     = context.Background()
-	)
+	for _, todo := range todos {
+		todo := todo
 
-	todos, err := todoApi.GetAll(ctx, 10, 2)
-	if err != nil {
-		log.Fatalln(err)
+		errGrp.Go(func() error {
+			resp, err := api.Get(ctx, todo.ID)
+			if err != nil {
+				return err
+			}
+
+			log.Println(resp.ID)
+			return nil
+		})
 	}
 
-	log.Printf("todos: %#+v \n", todos)
+	if err := errGrp.Wait(); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func errGroupCtx(ctx context.Context, api dummyjson.Todoer, todos []*dummyjson.Todo) {
+	errGrp, gCtx := errgroup.WithContext(ctx)
+
+	for _, todo := range todos {
+		todo := todo
+		errGrp.Go(func() error {
+			for {
+				select {
+				case <-gCtx.Done():
+					return gCtx.Err()
+				default:
+					resp, err := api.Get(ctx, todo.ID)
+					if err != nil {
+						return err
+					}
+
+					log.Println(resp.ID)
+					return nil
+				}
+			}
+		})
+	}
+
+	if err := errGrp.Wait(); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func main() {
+	//var (
+	//	httpClient = &http.Client{
+	//		Timeout: 10 * time.Second,
+	//	}
+	//
+	//	todoApi = dummyjson.NewTodoApi(httpClient)
+	//	ctx     = context.Background()
+	//)
+	//
+	//todos, err := todoApi.GetAll(ctx, 10, 2)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	//log.Printf("todos: %#+v \n", len(todos.Todos))
 
 	//waitGroupImpl(ctx, todoApi, todos.Todos)
 	//channelImpl(ctx, todoApi, todos.Todos)
-	limitGoroutines(ctx, todoApi, todos.Todos)
+	//limitGoroutines(ctx, todoApi, todos.Todos)
+	//errGroup(ctx, todoApi, todos.Todos)
+	//errGroupCtx(ctx, todoApi, todos.Todos)
+
+	var x any
+	x = 1
+
+	switch v := x.(type) {
+	case string:
+		log.Println("string", v)
+	case int:
+		log.Println("int", v)
+	}
+
+	if val, ok := x.(int); ok {
+		log.Println("int", val)
+	}
+
+	//sendOnly := make(chan<- struct{})
+	//receiveOnly := make(<-chan struct{})
+
+	numbers := make(chan int, 4)
+	numbers <- 1
+	numbers <- 2
+	numbers <- 3
+	numbers <- 4
+
+	fmt.Println(<-numbers)
+	fmt.Println(<-numbers)
+	fmt.Println(<-numbers)
+	fmt.Println(<-numbers)
 }
