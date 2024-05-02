@@ -23,6 +23,7 @@ func TestNewUserRepo(t *testing.T) {
 	})
 
 	testUser := factory.NewUser()
+	password := testUser.Password
 
 	userRepo, err := repository.NewUserTestRepo(ctx, dbConn, testUser)
 	require.NoError(t, err)
@@ -42,6 +43,7 @@ func TestNewUserRepo(t *testing.T) {
 	require.Nil(t, user)
 
 	testUser.Name = "Morty"
+	testUser.Password = password
 	err = userRepo.Update(ctx, testUser)
 	require.NoError(t, err)
 

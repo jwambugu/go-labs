@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/require"
+	"go-labs/internal/httperr"
 	"go-labs/internal/repository"
 	"go-labs/internal/testutils"
 	"go-labs/internal/testutils/factory"
@@ -114,7 +115,7 @@ func TestApi_Register_FlagsDuplicateEmails(t *testing.T) {
 
 	srv.mux.ServeHTTP(rr, req)
 
-	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	require.Equal(t, http.StatusUnprocessableEntity, rr.Code)
 }
 
 func TestApi_Register_Validates(t *testing.T) {
@@ -163,11 +164,11 @@ func TestApi_Register_Validates(t *testing.T) {
 
 			require.Equal(t, http.StatusUnprocessableEntity, rr.Code)
 
-			var resp *errorResponse
+			var errors []map[string]string
 
-			err = json.NewDecoder(rr.Body).Decode(&resp)
+			err = json.NewDecoder(rr.Body).Decode(&errors)
 			require.NoError(t, err)
-			require.Len(t, resp.Errors, tt.errorsCount)
+			require.Len(t, errors, tt.errorsCount)
 		})
 	}
 }
@@ -267,13 +268,13 @@ func TestApi_Login_InvalidCredentials(t *testing.T) {
 
 			srv.mux.ServeHTTP(rr, req)
 
-			require.Equal(t, http.StatusInternalServerError, rr.Code)
+			require.Equal(t, http.StatusUnauthorized, rr.Code)
 
-			var resp *errorResponse
+			var resp string
 
 			err = json.NewDecoder(rr.Body).Decode(&resp)
 			require.NoError(t, err)
-			require.NotEmpty(t, resp.Message)
+			require.Equal(t, httperr.ErrInvalidCredentials.Error(), resp)
 		})
 	}
 }
